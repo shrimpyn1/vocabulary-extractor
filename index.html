@@ -1,0 +1,800 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>English Vocabulary Extractor | 英语生词提取器</title>
+  <!-- Tailwind via CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter -->
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  <style>
+    body { font-family: 'Inter', sans-serif; }
+    /* Custom scrollbar for webkit */
+    ::-webkit-scrollbar { width: 8px; height: 8px; }
+    ::-webkit-scrollbar-track { background: rgba(15, 23, 42, 0.5); }
+    ::-webkit-scrollbar-thumb { background: rgba(51, 65, 85, 0.8); border-radius: 4px; }
+    ::-webkit-scrollbar-thumb:hover { background: rgba(71, 85, 105, 1); }
+    
+    .glass-panel {
+      background: rgba(15, 23, 42, 0.6);
+      backdrop-filter: blur(12px);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+    .glass-input {
+      background: rgba(2, 6, 23, 0.4);
+      border: 1px solid rgba(30, 41, 59, 0.8);
+      transition: all 0.2s;
+    }
+    .glass-input:focus {
+      background: rgba(2, 6, 23, 0.6);
+      border-color: rgba(59, 130, 246, 0.6);
+      box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.2);
+    }
+    
+    /* Fade transition for text changes */
+    .fade-text { animation: fadeIn 0.3s ease-in-out; }
+    @keyframes fadeIn { from { opacity: 0.5; } to { opacity: 1; } }
+  </style>
+</head>
+<body class="min-h-screen text-slate-100 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-slate-900 via-[#0f172a] to-black">
+
+  <!-- Header -->
+  <header class="sticky top-0 z-30 backdrop-blur-md bg-slate-950/70 border-b border-white/10">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 py-4 flex items-center justify-between">
+      <div class="flex items-center gap-3">
+        <div class="h-10 w-10 rounded-xl bg-gradient-to-br from-blue-600 to-indigo-600 grid place-items-center shadow-lg shadow-blue-500/20">
+          <span class="font-bold text-white tracking-wider">EV</span>
+        </div>
+        <div class="flex flex-col">
+          <h1 class="text-lg sm:text-xl font-bold tracking-tight text-white flex items-center gap-2">
+            <span data-i18n="app_title">English Vocabulary Extractor</span>
+          </h1>
+          <p class="text-xs text-slate-400 font-medium hidden sm:block" data-i18n="app_subtitle">Your personal vocabulary builder</p>
+        </div>
+      </div>
+
+      <div class="flex items-center gap-3">
+        <!-- Language Switcher -->
+        <div class="bg-slate-800/80 p-1 rounded-lg border border-slate-700/50 flex text-xs font-medium relative">
+          <button id="langEn" class="px-3 py-1.5 rounded-md transition-all z-10 text-slate-300 hover:text-white">EN</button>
+          <button id="langZh" class="px-3 py-1.5 rounded-md transition-all z-10 text-slate-300 hover:text-white">中文</button>
+          <div id="langBg" class="absolute inset-y-1 left-1 w-[calc(50%-4px)] bg-blue-600 rounded-md transition-all duration-300 shadow-sm"></div>
+        </div>
+
+        <!-- Header Actions -->
+        <div class="hidden md:flex items-center gap-2 border-l border-white/10 pl-3">
+          <button id="btnDemo" class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition" data-i18n="btn_example">Load Example</button>
+          <div class="relative group">
+            <button class="px-3 py-1.5 rounded-lg text-xs font-medium bg-slate-800 hover:bg-slate-700 text-slate-200 border border-slate-700 transition flex items-center gap-1">
+              <span data-i18n="btn_session">Session</span>
+              <svg class="w-3 h-3 opacity-60" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+            </button>
+            <div class="absolute right-0 top-full mt-2 w-32 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-50">
+              <button id="btnSaveSession" class="w-full text-left px-4 py-2 text-xs hover:bg-slate-700 text-slate-200 block" data-i18n="btn_save">Save</button>
+              <button id="btnLoadSession" class="w-full text-left px-4 py-2 text-xs hover:bg-slate-700 text-slate-200 block" data-i18n="btn_load">Load</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </header>
+
+  <main class="max-w-7xl mx-auto px-4 sm:px-6 py-8 grid lg:grid-cols-12 gap-6 lg:gap-8 items-start">
+    
+    <!-- LEFT COLUMN: Input Area (5 columns) -->
+    <section class="lg:col-span-5 flex flex-col gap-4 h-full">
+      <div class="glass-panel rounded-3xl p-5 shadow-2xl shadow-blue-900/10 flex flex-col min-h-[500px]">
+        
+        <!-- Input Header -->
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-blue-400 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z"></path></svg>
+            <span data-i18n="section_input">Source Text</span>
+          </h2>
+          <div class="flex items-center gap-2">
+            <label class="flex items-center gap-2 cursor-pointer group" title="Extract automatically while typing">
+              <div class="relative">
+                <input id="chkAutoExtract" type="checkbox" class="sr-only peer" />
+                <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-blue-600"></div>
+              </div>
+              <span class="text-xs text-slate-400 group-hover:text-slate-200 transition" data-i18n="opt_auto">Auto</span>
+            </label>
+            <div class="w-px h-4 bg-slate-700/50 mx-1"></div>
+            <button id="btnClear" class="text-xs text-slate-400 hover:text-red-400 transition font-medium" data-i18n="btn_clear">Clear</button>
+          </div>
+        </div>
+
+        <!-- Text Area -->
+        <div class="relative flex-1 group">
+          <textarea id="txtInput" 
+            class="w-full h-full min-h-[300px] bg-slate-950/30 rounded-2xl border border-slate-800/60 p-4 text-sm sm:text-base leading-relaxed text-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500/40 focus:border-blue-500/30 resize-none transition-all placeholder:text-slate-600/50"
+            placeholder="Paste your English text here..." data-i18n-placeholder="input_placeholder"></textarea>
+          
+          <!-- Floating Action Button for Extract (Mobile/Manual) -->
+          <button id="btnExtract" class="absolute bottom-4 right-4 bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-600/30 rounded-full px-5 py-2.5 text-sm font-semibold transition-transform active:scale-95 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+            <span data-i18n="btn_extract">Extract</span>
+          </button>
+        </div>
+
+        <!-- Import File -->
+        <div class="mt-4 pt-4 border-t border-slate-800/50 flex justify-between items-center">
+          <input id="fileInput" accept=".txt" type="file" class="hidden" />
+          <button id="btnImport" class="text-xs flex items-center gap-2 text-slate-400 hover:text-blue-400 transition">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12"></path></svg>
+            <span data-i18n="btn_import">Import .txt file</span>
+          </button>
+          <button id="btnToggleOptions" class="text-xs flex items-center gap-1.5 text-slate-400 hover:text-white transition bg-slate-800/50 hover:bg-slate-800 px-3 py-1.5 rounded-lg border border-slate-700/50">
+             <svg class="w-3.5 h-3.5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z"></path><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z"></path></svg>
+             <span data-i18n="btn_options">Options</span>
+          </button>
+        </div>
+
+        <!-- Options Panel (Collapsible) -->
+        <div id="optionsPanel" class="hidden mt-4 pt-4 border-t border-slate-800/50 grid grid-cols-1 sm:grid-cols-2 gap-3 animate-in slide-in-from-top-2 duration-200">
+           <label class="flex items-center p-2 rounded-lg bg-slate-800/30 border border-slate-700/30 cursor-pointer hover:bg-slate-800/50 transition">
+             <input id="chkCaseInsensitive" type="checkbox" class="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-offset-slate-900 focus:ring-blue-500">
+             <span class="ml-2.5 text-xs text-slate-300 select-none" data-i18n="opt_case">Ignore Case</span>
+           </label>
+           <label class="flex items-center p-2 rounded-lg bg-slate-800/30 border border-slate-700/30 cursor-pointer hover:bg-slate-800/50 transition">
+             <input id="chkTrimPunct" type="checkbox" class="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-offset-slate-900 focus:ring-blue-500">
+             <span class="ml-2.5 text-xs text-slate-300 select-none" data-i18n="opt_punct">Trim Punctuation</span>
+           </label>
+           <label class="flex items-center p-2 rounded-lg bg-slate-800/30 border border-slate-700/30 cursor-pointer hover:bg-slate-800/50 transition">
+             <input id="chkExcludeCommon" type="checkbox" class="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-offset-slate-900 focus:ring-blue-500">
+             <span class="ml-2.5 text-xs text-slate-300 select-none" data-i18n="opt_common">Exclude Common Words</span>
+           </label>
+           <label class="flex items-center p-2 rounded-lg bg-blue-900/20 border border-blue-500/30 cursor-pointer hover:bg-blue-900/30 transition">
+             <input id="chkShowChinese" type="checkbox" class="rounded border-slate-600 bg-slate-700 text-blue-600 focus:ring-offset-slate-900 focus:ring-blue-500">
+             <span class="ml-2.5 text-xs text-blue-200 font-medium select-none" data-i18n="opt_cn">Chinese Definitions</span>
+           </label>
+        </div>
+      </div>
+
+      <!-- Full Translation Panel -->
+      <div class="glass-panel rounded-3xl p-5 shadow-2xl shadow-purple-900/10 flex flex-col min-h-[300px]">
+        <div class="flex items-center justify-between mb-4">
+          <h2 class="text-sm font-bold uppercase tracking-wider text-purple-400 flex items-center gap-2">
+            <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 5h12M9 3v2m1.048 9.5A18.022 18.022 0 016.412 9m6.088 9h7M11 21l5-10 5 10M12.751 5C11.783 10.77 8.07 15.61 3 18.129"></path></svg>
+            <span data-i18n="section_trans">Full Translation</span>
+          </h2>
+          <button id="btnTranslate" class="text-xs bg-purple-600 hover:bg-purple-500 text-white px-3 py-1.5 rounded-lg transition shadow-lg shadow-purple-600/20 font-medium flex items-center gap-1.5">
+             <span data-i18n="btn_trans_action">Translate</span>
+             <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 5l7 7-7 7M5 5l7 7-7 7"></path></svg>
+          </button>
+        </div>
+        <div class="relative flex-1 group">
+           <div id="translationOutput" class="w-full h-full min-h-[200px] bg-slate-950/30 rounded-2xl border border-slate-800/60 p-4 text-sm leading-relaxed text-slate-300 overflow-y-auto whitespace-pre-wrap"></div>
+           <div id="transPlaceholder" class="absolute inset-0 flex flex-col items-center justify-center text-slate-500 pointer-events-none">
+              <p class="text-xs" data-i18n="msg_trans_placeholder">Click Translate to generate</p>
+           </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- RIGHT COLUMN: Results Area (7 columns) -->
+    <section class="lg:col-span-7 h-full flex flex-col gap-4">
+      <div class="glass-panel rounded-3xl p-5 shadow-2xl shadow-blue-900/10 flex flex-col h-full min-h-[500px]">
+        
+        <!-- Results Header & Controls -->
+        <div class="flex flex-col gap-4 mb-4">
+          <div class="flex items-center justify-between">
+            <h2 class="text-sm font-bold uppercase tracking-wider text-emerald-400 flex items-center gap-2">
+              <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"></path></svg>
+              <span data-i18n="section_results">Vocabulary List</span>
+            </h2>
+            <!-- Stats -->
+            <div class="text-xs text-slate-400 bg-slate-800/50 px-3 py-1 rounded-full border border-slate-700/50">
+               <span id="includedCount" class="text-white font-semibold">0</span> <span data-i18n="stat_selected">selected</span> 
+               <span class="opacity-50 mx-1">/</span> 
+               <span id="uniqueCount">0</span> <span data-i18n="stat_unique">unique</span>
+            </div>
+          </div>
+
+          <!-- Toolbar -->
+          <div class="flex flex-wrap gap-2 items-center justify-between bg-slate-900/40 p-2 rounded-xl border border-slate-800/50">
+             <div class="flex items-center gap-2 flex-1 min-w-[140px]">
+               <svg class="w-4 h-4 text-slate-500 ml-2" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z"></path></svg>
+               <input id="txtSearch" class="bg-transparent border-none text-xs sm:text-sm text-slate-200 placeholder-slate-500 focus:ring-0 w-full p-0" placeholder="Filter words..." data-i18n-placeholder="input_search_placeholder">
+             </div>
+             
+             <div class="flex items-center gap-1">
+                <button id="btnSelectAll" class="p-1.5 text-xs text-slate-400 hover:text-white rounded hover:bg-slate-700 transition" title="Select All"><span data-i18n="btn_all">All</span></button>
+                <button id="btnSelectNone" class="p-1.5 text-xs text-slate-400 hover:text-white rounded hover:bg-slate-700 transition" title="Select None"><span data-i18n="btn_none">None</span></button>
+                <div class="w-px h-4 bg-slate-700/50 mx-1"></div>
+                <div class="relative group">
+                  <button class="bg-blue-600/90 hover:bg-blue-500 text-white text-xs font-medium px-3 py-1.5 rounded-lg transition shadow flex items-center gap-1.5">
+                    <span data-i18n="btn_export">Export</span>
+                    <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"></path></svg>
+                  </button>
+                  <div class="absolute right-0 top-full mt-1 w-36 bg-slate-800 border border-slate-700 rounded-xl shadow-xl overflow-hidden hidden group-hover:block z-20">
+                    <button id="btnCopyNumbered" class="w-full text-left px-4 py-2 text-xs hover:bg-slate-700 text-slate-200 block" data-i18n="btn_copy">Copy List</button>
+                    <button id="btnExportTxt" class="w-full text-left px-4 py-2 text-xs hover:bg-slate-700 text-slate-200 block" data-i18n="btn_txt">Download .txt</button>
+                    <button id="btnExportCsv" class="w-full text-left px-4 py-2 text-xs hover:bg-slate-700 text-slate-200 block" data-i18n="btn_csv">Download .csv</button>
+                  </div>
+                </div>
+             </div>
+          </div>
+        </div>
+
+        <!-- Scrollable List -->
+        <div class="relative flex-1 rounded-2xl bg-slate-900/30 border border-slate-800/50 overflow-hidden min-h-[300px]">
+          <div class="absolute inset-0 overflow-y-auto custom-scrollbar p-2">
+            
+            <!-- Empty State -->
+            <div id="resultsEmpty" class="h-full flex flex-col items-center justify-center text-slate-500 p-8 text-center">
+              <div class="w-16 h-16 bg-slate-800/50 rounded-full grid place-items-center mb-4">
+                <svg class="w-8 h-8 opacity-50" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10"></path></svg>
+              </div>
+              <p class="text-sm font-medium" data-i18n="msg_empty_title">Ready to extract</p>
+              <p class="text-xs mt-1 max-w-xs leading-relaxed" data-i18n="msg_empty_desc">Enter text on the left to generate your list. Enable 'Chinese Definitions' for translations.</p>
+            </div>
+
+            <!-- List -->
+            <ul id="resultsList" class="hidden space-y-1"></ul>
+            
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <footer class="max-w-7xl mx-auto px-6 py-6 text-center">
+    <p class="text-xs text-slate-500" data-i18n="footer_text">Built for English learners. Powered by Google Translate.</p>
+  </footer>
+
+  <!-- Toast -->
+  <div id="toast" class="fixed bottom-6 left-1/2 -translate-x-1/2 px-5 py-3 rounded-full shadow-2xl backdrop-blur-md transform transition-all duration-300 translate-y-20 opacity-0 pointer-events-none border border-slate-700/50 flex items-center gap-3 z-50">
+    <div id="toastIcon" class=""></div>
+    <span id="toastMsg" class="text-sm font-medium text-white"></span>
+  </div>
+
+  <script>
+    // ---------------------------- I18N Data ----------------------------
+    const I18N = {
+      en: {
+        app_title: "English Vocabulary Extractor",
+        app_subtitle: "Your personal vocabulary builder",
+        btn_example: "Load Example",
+        btn_session: "Session",
+        btn_save: "Save Session",
+        btn_load: "Load Session",
+        section_input: "Source Text",
+        opt_auto: "Auto-Extract",
+        btn_clear: "Clear",
+        btn_extract: "Extract Vocabulary",
+        btn_import: "Import .txt file",
+        btn_options: "Options",
+        input_placeholder: "Paste your article, book chapter, or subtitles here...",
+        opt_case: "Ignore Case (abc = ABC)",
+        opt_punct: "Trim Outer Punctuation",
+        opt_common: "Exclude Common Words (a, the, is...)",
+        opt_cn: "Show Chinese Definitions (Google)",
+        section_results: "Vocabulary List",
+        stat_selected: "selected",
+        stat_unique: "unique words",
+        input_search_placeholder: "Filter words...",
+        btn_all: "All",
+        btn_none: "None",
+        btn_export: "Export / Copy",
+        btn_copy: "Copy to Clipboard",
+        btn_txt: "Download .txt",
+        btn_csv: "Download .csv",
+        msg_empty_title: "Ready to extract",
+        msg_empty_desc: "Enter text on the left to generate your list. Enable 'Chinese Definitions' for translations.",
+        footer_text: "Built for English learners. Powered by Google Translate.",
+        toast_copied: "Copied to clipboard!",
+        toast_saved: "Session saved successfully.",
+        toast_loaded: "Session loaded successfully.",
+        toast_no_session: "No saved session found.",
+        toast_exported: "File exported.",
+        toast_cleared: "Cleared.",
+        toast_demo: "Example text loaded.",
+        word_loading: "Loading...",
+        section_trans: "Full Translation",
+        btn_trans_action: "Translate",
+        msg_trans_placeholder: "Click Translate to generate (Google)"
+      },
+      zh: {
+        app_title: "英语生词提取器",
+        app_subtitle: "您的个人词汇构建助手",
+        btn_example: "加载示例",
+        btn_session: "会话存档",
+        btn_save: "保存进度",
+        btn_load: "读取进度",
+        section_input: "输入文本",
+        opt_auto: "自动提取",
+        btn_clear: "清空",
+        btn_extract: "提取生词",
+        btn_import: "导入 .txt 文件",
+        btn_options: "选项设置",
+        input_placeholder: "在此粘贴文章、章节或字幕文本...",
+        opt_case: "忽略大小写 (abc = ABC)",
+        opt_punct: "去除首尾标点",
+        opt_common: "排除常用词 (a, the, is...)",
+        opt_cn: "显示中文释义 (Google 翻译)",
+        section_results: "生词列表",
+        stat_selected: "已选",
+        stat_unique: "个唯一单词",
+        input_search_placeholder: "筛选单词...",
+        btn_all: "全选",
+        btn_none: "全不选",
+        btn_export: "导出 / 复制",
+        btn_copy: "复制到剪贴板",
+        btn_txt: "下载 .txt 文件",
+        btn_csv: "下载 .csv 文件",
+        msg_empty_title: "准备就绪",
+        msg_empty_desc: "在左侧输入文本以生成列表。开启“中文释义”可获取自动翻译。",
+        footer_text: "专为英语学习者打造。由 Google 翻译提供支持。",
+        toast_copied: "已复制到剪贴板！",
+        toast_saved: "进度保存成功。",
+        toast_loaded: "进度读取成功。",
+        toast_no_session: "未找到存档。",
+        toast_exported: "文件已导出。",
+        toast_cleared: "已清空。",
+        toast_demo: "示例文本已加载。",
+        word_loading: "加载中...",
+        section_trans: "全文翻译",
+        btn_trans_action: "开始翻译",
+        msg_trans_placeholder: "点击翻译按钮生成 (Google)"
+      }
+    };
+
+    // ---------------------------- App State ----------------------------
+    const state = {
+      lang: localStorage.getItem('EVE_lang') || 'en',
+      text: '',
+      items: [], // { key, display, included, order, chinese }
+      options: {
+        caseSensitive: true,
+        trimOuterPunctuation: true, // defaulted to true for better UX
+        autoExtract: true,
+        excludeCommonWords: true,
+        showChineseDefinitions: false
+      },
+      search: '',
+      translationCache: {},
+      loadingTranslations: false
+    };
+
+    // ---------------------------- Core Logic ----------------------------
+    const COMMON_WORDS = new Set([
+      'a','an','the','and','or','but','if','because','as','of','at','by','for','with','about','against',
+      'between','into','through','during','before','after','above','below','to','from','up','down','in',
+      'out','on','off','over','under','again','further','then','once','here','there','when','where','why',
+      'how','all','both','each','few','more','most','other','some','such','no','nor','not','only','own',
+      'same','so','than','too','very','can','will','just','should','now','i','you','he','she','it','we',
+      'they','them','their','what','which','who','this','that','these','those','am','is','are','was','were',
+      'be','been','being','have','has','had','do','does','did','done','would','could','may','might','must',
+      'shall','will','going','get','got','go','goes','went','gone','make','made','makes','see','saw','seen',
+      'come','came','take','took','taken','know','knew','known','think','thought','say','said','tell','told',
+      'give','gave','given','find','found','use','used','work','worked','call','called','try','tried','ask',
+      'asked','need','needed','feel','felt','become','became','leave','left','put','mean','meant','keep',
+      'kept','let','begin','began','begun','seem','seemed','help','helped','show','showed','shown','hear',
+      'heard','play','played','run','ran','move','moved','like','liked','live','lived','believe','believed',
+      'bring','brought','happen','happened','write','wrote','written','sit','sat','stand','stood','lose',
+      'lost','pay','paid','meet','met','include','included','continue','continued','set','learn','learned',
+      'learnt','change','changed','lead','led','understand','understood','watch','watched','follow','followed',
+      'stop','stopped','create','created','speak','spoke','spoken','read','allow','allowed','add','added',
+      'spend','spent','grow','grew','grown','open','opened','walk','walked','win','won','thank','thanked',
+      'buy','bought','pass','passed','lie','lay','lain','break','broke','broken','differ','differed','turn',
+      'turned','start','started','hold','held','talk','talked','reach','reached','appear','appeared','yes',
+      'no','ok','okay','one','two','three','four','five','six','seven','eight','nine','ten','my','your',
+      'his','her','its','our','me','him','us','myself','yourself','himself','herself','itself','ourselves',
+      'themselves','really','never','always','often','sometimes','much','many','little','any','every'
+    ]);
+
+    const unicodeStripper = (() => {
+      try { return new RegExp('^[\p{P}\p{S}]+|[\p{P}\p{S}]+$', 'gu'); } catch { return null; }
+    })();
+
+    function stripOuterNonWordChars(s) {
+      if (!s) return s;
+      if (unicodeStripper) return s.replace(unicodeStripper, '');
+      return s.replace(/^[^0-9A-Za-z]+|[^0-9A-Za-z]+$/g, '');
+    }
+
+    function extractUniqueTokens(rawText, opts, prevByKey) {
+      const parts = rawText.split(/\s+/).filter(Boolean);
+      const map = new Map();
+      let order = 1;
+      for (const p of parts) {
+        const display = opts.trimOuterPunctuation ? stripOuterNonWordChars(p) : p;
+        if (!display) continue;
+        if (!/[A-Za-z]/.test(display)) continue; // Must contain at least one letter
+
+        const key = opts.caseSensitive ? display : display.toLowerCase();
+
+        if (opts.excludeCommonWords && COMMON_WORDS.has(key.toLowerCase())) continue;
+
+        if (!map.has(key)) {
+          const prev = prevByKey && prevByKey.get(key);
+          const included = prev ? prev.included : true;
+          const chinese = prev ? prev.chinese : null;
+          map.set(key, { key, display, included, order: order++, chinese });
+        }
+      }
+      return Array.from(map.values());
+    }
+
+    // ---------------------------- Google Translate API ----------------------------
+    async function fetchTranslations() {
+      if (state.loadingTranslations) return;
+
+      // Load cache
+      const cached = localStorage.getItem('EVE_translations');
+      if (cached) { try { state.translationCache = JSON.parse(cached); } catch {} }
+
+      const pending = state.items.filter(i => !i.chinese && !state.translationCache[i.key]);
+      
+      // Apply cache immediately
+      let applied = false;
+      state.items.forEach(i => {
+        if (!i.chinese && state.translationCache[i.key]) {
+          i.chinese = state.translationCache[i.key];
+          applied = true;
+        }
+      });
+      if (applied) renderList();
+
+      if (pending.length === 0) return;
+
+      state.loadingTranslations = true;
+      renderList(); // show loading state
+
+      const MAX_CONCURRENT = 8;
+      let index = 0;
+      let saveCounter = 0;
+
+      const worker = async () => {
+        while (index < pending.length) {
+          const item = pending[index++];
+          try {
+            const res = await fetch(`https://translate.googleapis.com/translate_a/single?client=gtx&sl=en&tl=zh-CN&dt=t&q=${encodeURIComponent(item.display)}`);
+            const data = await res.json();
+            if (data && data[0] && data[0][0] && data[0][0][0]) {
+              const cn = data[0][0][0];
+              item.chinese = cn;
+              state.translationCache[item.key] = cn;
+              saveCounter++;
+              if (saveCounter % 5 === 0) {
+                 localStorage.setItem('EVE_translations', JSON.stringify(state.translationCache));
+                 renderList();
+              }
+            }
+          } catch (e) { console.error(e); }
+        }
+      };
+
+      const promises = [];
+      for(let i=0; i<MAX_CONCURRENT; i++) promises.push(worker());
+      await Promise.all(promises);
+
+      localStorage.setItem('EVE_translations', JSON.stringify(state.translationCache));
+      state.loadingTranslations = false;
+      renderList();
+    }
+
+    // ---------------------------- UI Rendering ----------------------------
+    const $ = s => document.querySelector(s);
+    const $$ = s => document.querySelectorAll(s);
+
+    function setLanguage(lang) {
+      state.lang = lang;
+      localStorage.setItem('EVE_lang', lang);
+      
+      // Update toggle visual
+      const bg = $('#langBg');
+      if (lang === 'en') {
+        bg.style.transform = 'translateX(0)';
+        $('#langEn').classList.replace('text-slate-300', 'text-white');
+        $('#langZh').classList.replace('text-white', 'text-slate-300');
+      } else {
+        bg.style.transform = 'translateX(100%)';
+        $('#langZh').classList.replace('text-slate-300', 'text-white');
+        $('#langEn').classList.replace('text-white', 'text-slate-300');
+      }
+
+      // Update Texts
+      $$('[data-i18n]').forEach(el => {
+        const key = el.getAttribute('data-i18n');
+        if (I18N[lang][key]) {
+          el.innerText = I18N[lang][key];
+          el.classList.remove('fade-text');
+          void el.offsetWidth; // trigger reflow
+          el.classList.add('fade-text');
+        }
+      });
+      $$('[data-i18n-placeholder]').forEach(el => {
+        const key = el.getAttribute('data-i18n-placeholder');
+        if (I18N[lang][key]) el.placeholder = I18N[lang][key];
+      });
+
+      renderCounts();
+    }
+
+    function renderCounts() {
+      const list = filterItems();
+      $('#includedCount').innerText = list.filter(i => i.included).length;
+      $('#uniqueCount').innerText = list.length;
+    }
+
+    function filterItems() {
+      const q = state.search.trim().toLowerCase();
+      if (!q) return state.items;
+      return state.items.filter(i => i.display.toLowerCase().includes(q));
+    }
+
+    function renderList() {
+      const listEl = $('#resultsList');
+      const emptyEl = $('#resultsEmpty');
+      const items = filterItems();
+
+      if (items.length === 0 && !state.text) {
+        listEl.classList.add('hidden');
+        emptyEl.classList.remove('hidden');
+        return;
+      }
+      
+      emptyEl.classList.add('hidden');
+      listEl.classList.remove('hidden');
+
+      // Virtual DOM-ish approach: rebuild string is faster for long lists than DOM nodes
+      let html = '';
+      items.forEach(item => {
+        const isExcluded = !item.included;
+        const cn = state.options.showChineseDefinitions 
+          ? (item.chinese 
+              ? `<div class="text-xs text-blue-300/80 mt-0.5 font-medium">${escapeHtml(item.chinese)}</div>` 
+              : (state.loadingTranslations ? `<div class="text-xs text-slate-500 mt-0.5 animate-pulse">${I18N[state.lang].word_loading}</div>` : '')) 
+          : '';
+
+        html += `
+          <li class="group flex items-center justify-between p-3 rounded-xl hover:bg-slate-800/40 border border-transparent hover:border-slate-700/50 transition-colors">
+            <div class="flex items-center gap-4 flex-1 overflow-hidden">
+              <span class="text-xs text-slate-500 font-mono w-6 text-right shrink-0">${item.order}</span>
+              <div class="flex flex-col min-w-0">
+                <div class="flex items-center gap-2">
+                  <span class="font-medium text-slate-200 truncate select-all text-[15px] ${isExcluded ? 'opacity-50 decoration-slate-600 line-through' : ''}">${escapeHtml(item.display)}</span>
+                </div>
+                ${cn}
+              </div>
+            </div>
+            
+            <label class="relative inline-flex items-center cursor-pointer ml-3">
+              <input type="checkbox" class="sr-only peer item-check" data-key="${encodeURIComponent(item.key)}" ${item.included ? 'checked' : ''}>
+              <div class="w-9 h-5 bg-slate-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-500"></div>
+            </label>
+          </li>
+        `;
+      });
+      
+      if (items.length === 0 && state.text) {
+        listEl.innerHTML = `<li class="p-4 text-center text-slate-500 text-sm">No matches found for "${escapeHtml(state.search)}"</li>`;
+      } else {
+        listEl.innerHTML = html;
+      }
+      renderCounts();
+    }
+
+    function reextract() {
+      const prev = new Map(state.items.map(i => [i.key, i]));
+      state.items = extractUniqueTokens(state.text, state.options, prev);
+      renderList();
+      if (state.options.showChineseDefinitions) fetchTranslations();
+    }
+
+    function escapeHtml(text) {
+      return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+    }
+
+    function showToast(keyOrMsg, type='neutral') {
+      const el = $('#toast');
+      const msg = I18N[state.lang][keyOrMsg] || keyOrMsg;
+      $('#toastMsg').innerText = msg;
+      
+      // Icon based on type (simple colors for now)
+      const colors = { success: 'bg-emerald-500', error: 'bg-red-500', neutral: 'bg-blue-500' };
+      $('#toastIcon').className = `w-2 h-2 rounded-full ${colors[type] || colors.neutral}`;
+      
+      el.classList.remove('translate-y-20', 'opacity-0', 'pointer-events-none');
+      setTimeout(() => el.classList.add('translate-y-20', 'opacity-0', 'pointer-events-none'), 2500);
+    }
+
+    // ---------------------------- Event Listeners ----------------------------
+    
+    // Lang Switch
+    $('#langEn').onclick = () => setLanguage('en');
+    $('#langZh').onclick = () => setLanguage('zh');
+
+    // Input
+    $('#txtInput').addEventListener('input', e => {
+      state.text = e.target.value;
+      if (state.options.autoExtract) reextract();
+    });
+
+    $('#btnExtract').onclick = () => { reextract(); showToast('toast_demo'); }; // Using demo toast msg as generic success for now or add specific
+    $('#btnClear').onclick = () => { 
+      state.text = ''; $('#txtInput').value = ''; state.items = []; 
+      renderList(); showToast('toast_cleared'); 
+    };
+
+    // Options
+    $('#btnToggleOptions').onclick = () => $('#optionsPanel').classList.toggle('hidden');
+    
+    const bindOpt = (id, prop) => {
+      $(id).addEventListener('change', e => {
+        state.options[prop] = e.target.checked;
+        if (prop === 'showChineseDefinitions' && state.options[prop]) fetchTranslations();
+        else reextract();
+      });
+    };
+    bindOpt('#chkAutoExtract', 'autoExtract');
+    bindOpt('#chkCaseInsensitive', 'caseSensitive');
+    bindOpt('#chkTrimPunct', 'trimOuterPunctuation');
+    bindOpt('#chkExcludeCommon', 'excludeCommonWords');
+    bindOpt('#chkShowChinese', 'showChineseDefinitions');
+
+    // Init checkbox states
+    $('#chkAutoExtract').checked = state.options.autoExtract;
+    $('#chkCaseInsensitive').checked = state.options.caseSensitive;
+    $('#chkTrimPunct').checked = state.options.trimOuterPunctuation;
+    $('#chkExcludeCommon').checked = state.options.excludeCommonWords;
+    $('#chkShowChinese').checked = state.options.showChineseDefinitions;
+
+    // Search
+    $('#txtSearch').addEventListener('input', e => {
+      state.search = e.target.value;
+      renderList();
+    });
+
+    // List Actions
+    $('#resultsList').addEventListener('change', e => {
+      if (e.target.matches('.item-check')) {
+        const key = decodeURIComponent(e.target.dataset.key);
+        const item = state.items.find(i => i.key === key);
+        if (item) { item.included = e.target.checked; renderCounts(); renderList(); } // Re-render to update strikethrough
+      }
+    });
+
+    $('#btnSelectAll').onclick = () => { state.items.forEach(i => i.included = true); renderList(); };
+    $('#btnSelectNone').onclick = () => { state.items.forEach(i => i.included = false); renderList(); };
+
+    // File Import
+    $('#btnImport').onclick = () => $('#fileInput').click();
+    $('#fileInput').onchange = e => {
+      const f = e.target.files[0];
+      if(!f) return;
+      const r = new FileReader();
+      r.onload = () => { state.text = r.result; $('#txtInput').value = state.text; if(state.options.autoExtract) reextract(); };
+      r.readAsText(f);
+      e.target.value = '';
+    };
+
+    // Exporting
+    const getExportList = () => state.items.filter(i => i.included);
+    
+    $('#btnCopyNumbered').onclick = async () => {
+      const text = getExportList().map((i, idx) => `${idx+1}. ${i.display}${i.chinese ? ' '+i.chinese : ''}`).join('\n');
+      try { await navigator.clipboard.writeText(text); showToast('toast_copied', 'success'); } catch {}
+    };
+
+    function download(filename, content) {
+      const blob = new Blob([content], {type: 'text/plain;charset=utf-8'});
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url; a.download = filename; document.body.appendChild(a); a.click(); a.remove();
+    }
+
+    $('#btnExportTxt').onclick = () => {
+      const text = getExportList().map((i, idx) => `${idx+1}. ${i.display}${i.chinese ? ' '+i.chinese : ''}`).join('\n');
+      download('vocabulary.txt', text);
+      showToast('toast_exported', 'success');
+    };
+
+    $('#btnExportCsv').onclick = () => {
+      const csv = ['Index,Word,Translation,Context'].join(',') + '\n' + 
+        getExportList().map((i, idx) => `${idx+1},"${i.display}","${i.chinese||''}"`).join('\n');
+      download('vocabulary.csv', csv);
+      showToast('toast_exported', 'success');
+    };
+
+    // Session
+    $('#btnSaveSession').onclick = () => {
+      const s = { text: state.text, options: state.options, items: state.items, cache: state.translationCache };
+      localStorage.setItem('EVE_session', JSON.stringify(s));
+      showToast('toast_saved', 'success');
+    };
+    $('#btnLoadSession').onclick = () => {
+      try {
+        const s = JSON.parse(localStorage.getItem('EVE_session'));
+        if(!s) throw new Error();
+        state.text = s.text || ''; $('#txtInput').value = state.text;
+        state.options = {...state.options, ...s.options};
+        state.translationCache = s.cache || {};
+        // Restore items/options to UI
+        $('#chkAutoExtract').checked = state.options.autoExtract;
+        $('#chkCaseInsensitive').checked = state.options.caseSensitive;
+        $('#chkTrimPunct').checked = state.options.trimOuterPunctuation;
+        $('#chkExcludeCommon').checked = state.options.excludeCommonWords;
+        $('#chkShowChinese').checked = state.options.showChineseDefinitions;
+        
+        reextract();
+        showToast('toast_loaded', 'success');
+      } catch { showToast('toast_no_session', 'error'); }
+    };
+
+    // Demo
+    const DEMO_TEXT = `Learning English efficiently is about consistent exposure.\n\nPaste anything here—articles, notes, transcripts, even code.\nThis tool lists every word the first time it appears, in order.\n\nExamples: do, did, done; can't; state-of-the-art; HTTP/2; v2.0; hello!!!\nTokens must contain at least one English letter (A–Z), so pure numbers like 100 or 2.0 are excluded.\nTry toggling case sensitivity or trimming punctuation.`;
+    $('#btnDemo').onclick = () => {
+      state.text = DEMO_TEXT; $('#txtInput').value = DEMO_TEXT;
+      if(state.options.autoExtract) reextract();
+      showToast('toast_demo');
+    };
+
+    // ---------------------------- Full Translation ----------------------------
+    async function fetchFullTranslation() {
+      const text = state.text.trim();
+      if (!text) { showToast('msg_empty_desc', 'neutral'); return; }
+
+      const out = $('#translationOutput');
+      const placeholder = $('#transPlaceholder');
+      const btn = $('#btnTranslate');
+      
+      // Reset UI
+      placeholder.classList.add('hidden');
+      out.innerHTML = `<div class="animate-pulse text-slate-500">${I18N[state.lang].word_loading}</div>`;
+      btn.disabled = true;
+      btn.classList.add('opacity-50', 'cursor-not-allowed');
+
+      try {
+        // Chunking Strategy: Split by sentences/newlines to respect URL limits (~2000 chars safely)
+        const chunks = [];
+        const MAX_CHUNK = 1500;
+        
+        let currentChunk = "";
+        // Split by major punctuation to keep sentences intact-ish
+        const rawSegments = text.match(/[^.!?\n]+[.!?\n]*|./g) || [text];
+        
+        for (const seg of rawSegments) {
+          if ((currentChunk + seg).length > MAX_CHUNK) {
+            if (currentChunk) chunks.push(currentChunk);
+            currentChunk = seg;
+          } else {
+            currentChunk += seg;
+          }
+        }
+        if (currentChunk) chunks.push(currentChunk);
+
+        const results = [];
+        for (const chunk of chunks) {
+          const url = `https://translate.googleapis.com/translate_a/single?client=gtx&sl=auto&tl=zh-CN&dt=t&q=${encodeURIComponent(chunk)}`;
+          const res = await fetch(url);
+          if (!res.ok) throw new Error('Network response was not ok');
+          const data = await res.json();
+          if (data && data[0]) {
+             const translatedPart = data[0].map(x => x[0]).join('');
+             results.push(translatedPart);
+          }
+        }
+        
+        out.innerText = results.join('');
+        
+      } catch (e) {
+        console.error(e);
+        out.innerHTML = `<span class="text-red-400">Translation failed. Please try again.</span>`;
+      } finally {
+        btn.disabled = false;
+        btn.classList.remove('opacity-50', 'cursor-not-allowed');
+      }
+    }
+
+    $('#btnTranslate').onclick = fetchFullTranslation;
+
+    // Initialize
+    setLanguage(state.lang);
+  </script>
+</body>
+</html>
