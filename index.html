@@ -387,7 +387,7 @@
     ]);
 
     const unicodeStripper = (() => {
-      try { return new RegExp('^[\p{P}\p{S}]+|[\p{P}\p{S}]+$', 'gu'); } catch { return null; }
+      try { return new RegExp('^[\\p{P}\\p{S}]+|[\\p{P}\\p{S}]+$', 'gu'); } catch { return null; }
     })();
 
     function stripOuterNonWordChars(s) {
